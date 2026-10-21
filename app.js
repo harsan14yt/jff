@@ -1,29 +1,20 @@
 ```javascript
-document.addEventListener("DOMContentLoaded", function () {
-    const fetchBtn = document.getElementById("fetchBtn");
-    const statusElement = document.getElementById("status");
-    const addressElement = document.getElementById("address");
+alert("JAVASCRIPT FILE LOADED");
 
-    if (!fetchBtn || !statusElement || !addressElement) {
+document.addEventListener("DOMContentLoaded", function () {
+    const button = document.getElementById("fetchBtn");
+    const status = document.getElementById("status");
+    const address = document.getElementById("address");
+
+    if (!button || !status || !address) {
+        alert("ERROR: HTML elements not found");
         return;
     }
 
-    statusElement.textContent = "JavaScript loaded successfully.";
-
-    fetchBtn.addEventListener("click", function () {
-        try {
-            const result = {
-                ethereum: typeof window.ethereum !== "undefined",
-                tronWeb: typeof window.tronWeb !== "undefined",
-                tronLink: typeof window.tronLink !== "undefined"
-            };
-
-            addressElement.textContent = JSON.stringify(result, null, 2);
-            statusElement.textContent = "Provider check completed.";
-        } catch (error) {
-            statusElement.textContent = "Diagnostic failed.";
-            addressElement.textContent = String(error);
-        }
+    button.addEventListener("click", function () {
+        status.textContent = "BUTTON WORKS";
+        address.textContent = "JavaScript is working correctly!";
+        alert("BUTTON CLICK DETECTED");
     });
 });
 ```
