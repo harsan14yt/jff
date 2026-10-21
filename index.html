@@ -2,268 +2,117 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EVM Wallet Address Demo</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EVM Address Fetcher</title>
 
-    <style>
-        * {
-            box-sizing: border-box;
-        }
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #0d111b;
+      color: white;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      box-sizing: border-box;
+    }
 
-        body {
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            background: #0d111b;
-            color: #ffffff;
-            font-family: Arial, sans-serif;
-        }
+    .card {
+      width: 100%;
+      max-width: 380px;
+      padding: 24px;
+      background: #171e2d;
+      border-radius: 16px;
+      box-sizing: border-box;
+    }
 
-        .card {
-            width: 100%;
-            max-width: 400px;
-            padding: 28px;
-            border-radius: 18px;
-            background: #171e2d;
-            border: 1px solid #2b3549;
-            text-align: center;
-        }
+    h2 {
+      margin-top: 0;
+    }
 
-        h2 {
-            margin-top: 0;
-            font-size: 24px;
-        }
+    button {
+      width: 100%;
+      padding: 14px;
+      border: 0;
+      border-radius: 9px;
+      background: #625bff;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
 
-        p {
-            color: #aeb8ca;
-            font-size: 14px;
-            line-height: 1.6;
-        }
+    #address {
+      margin-top: 18px;
+      padding: 12px;
+      background: #0d111b;
+      border-radius: 8px;
+      overflow-wrap: anywhere;
+      line-height: 1.6;
+    }
 
-        button {
-            width: 100%;
-            padding: 14px;
-            margin-top: 16px;
-            border: none;
-            border-radius: 10px;
-            background: #625bff;
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .result {
-            margin-top: 20px;
-            padding: 14px;
-            border-radius: 10px;
-            background: #0d111b;
-            overflow-wrap: anywhere;
-            text-align: left;
-        }
-
-        .label {
-            margin-bottom: 8px;
-            color: #aeb8ca;
-            font-size: 12px;
-        }
-
-        #address {
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        #status {
-            margin-top: 14px;
-            font-size: 13px;
-        }
-
-        .hidden {
-            display: none;
-        }
-    </style>
+    #status {
+      margin-top: 14px;
+      color: #bac4d6;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+  </style>
 </head>
 
 <body>
+  <main class="card">
+    <h2>EVM Address Fetcher</h2>
 
-    <main class="card">
-        <h2>EVM Wallet DApp</h2>
+    <p>Fetch an already-authorized wallet address.</p>
 
-        <p>
-            Connect your EVM wallet to retrieve your
-            authorized public wallet address.
-        </p>
+    <button id="fetchBtn">Fetch Address</button>
 
-        <button id="connectBtn">Connect Wallet</button>
+    <div id="address" hidden></div>
+    <div id="status" role="status">Ready.</div>
+  </main>
 
-        <button id="fetchBtn" style="background:#29354b;">
-            Fetch Wallet Address
-        </button>
+  <script>
+    const fetchBtn = document.getElementById("fetchBtn");
+    const addressBox = document.getElementById("address");
+    const statusBox = document.getElementById("status");
 
-        <div class="result hidden" id="result">
-            <div class="label">Wallet Address</div>
-            <div id="address"></div>
-            <button id="copyBtn" style="margin-top:12px;">
-                Copy Address
-            </button>
-        </div>
+    fetchBtn.addEventListener("click", async () => {
+      if (!window.ethereum) {
+        statusBox.textContent =
+          "No compatible EVM wallet provider detected. Open this page in your wallet browser.";
+        return;
+      }
 
-        <div id="status" role="status" aria-live="polite">
-            Ready to connect.
-        </div>
-    </main>
+      fetchBtn.disabled = true;
+      statusBox.textContent = "Checking authorized accounts...";
+      addressBox.hidden = true;
 
-    <script>
-        const connectBtn = document.getElementById("connectBtn");
-        const fetchBtn = document.getElementById("fetchBtn");
-        const copyBtn = document.getElementById("copyBtn");
-        const addressBox = document.getElementById("address");
-        const resultBox = document.getElementById("result");
-        const statusBox = document.getElementById("status");
-
-        let walletAddress = "";
-
-        function getProvider() {
-            if (window.ethereum) {
-                return window.ethereum;
-            }
-
-            return null;
-        }
-
-        function showAddress(address) {
-            walletAddress = address;
-            addressBox.textContent = address;
-            resultBox.classList.remove("hidden");
-            statusBox.textContent = "Wallet address fetched successfully.";
-            connectBtn.textContent = "Wallet Connected";
-        }
-
-        async function connectWallet() {
-            const provider = getProvider();
-
-            if (!provider) {
-                statusBox.textContent =
-                    "No EVM wallet detected. Open this DApp in your wallet's browser.";
-                return;
-            }
-
-            connectBtn.disabled = true;
-            statusBox.textContent = "Waiting for wallet approval...";
-
-            try {
-                const accounts = await provider.request({
-                    method: "eth_requestAccounts"
-                });
-
-                if (!accounts || accounts.length === 0) {
-                    statusBox.textContent =
-                        "No account was authorized. Please try again.";
-                    return;
-                }
-
-                showAddress(accounts[0]);
-
-            } catch (error) {
-                if (error.code === 4001) {
-                    statusBox.textContent =
-                        "Connection request rejected in the wallet.";
-                } else {
-                    statusBox.textContent =
-                        "Unable to connect: " +
-                        (error.message || "Unknown error");
-                }
-            } finally {
-                connectBtn.disabled = false;
-            }
-        }
-
-        async function fetchAddress() {
-            const provider = getProvider();
-
-            if (!provider) {
-                statusBox.textContent =
-                    "No EVM wallet detected. Open this page in your wallet browser.";
-                return;
-            }
-
-            fetchBtn.disabled = true;
-            statusBox.textContent = "Checking wallet access...";
-
-            try {
-                // Check previously authorized accounts first.
-                let accounts = await provider.request({
-                    method: "eth_accounts"
-                });
-
-                // If none are authorized, request access from the user.
-                if (!accounts || accounts.length === 0) {
-                    accounts = await provider.request({
-                        method: "eth_requestAccounts"
-                    });
-                }
-
-                if (!accounts || accounts.length === 0) {
-                    statusBox.textContent =
-                        "No wallet account is available.";
-                    return;
-                }
-
-                showAddress(accounts[0]);
-
-            } catch (error) {
-                if (error.code === 4001) {
-                    statusBox.textContent =
-                        "Wallet access was rejected.";
-                } else {
-                    statusBox.textContent =
-                        "Could not fetch address: " +
-                        (error.message || "Unknown error");
-                }
-            } finally {
-                fetchBtn.disabled = false;
-            }
-        }
-
-        connectBtn.addEventListener("click", connectWallet);
-        fetchBtn.addEventListener("click", fetchAddress);
-
-        copyBtn.addEventListener("click", async function () {
-            if (!walletAddress) return;
-
-            try {
-                await navigator.clipboard.writeText(walletAddress);
-                statusBox.textContent = "Address copied!";
-            } catch (error) {
-                statusBox.textContent =
-                    "Copy failed. Please select and copy the address manually.";
-            }
+      try {
+        // Does not request new wallet permissions.
+        const accounts = await window.ethereum.request({
+          method: "eth_accounts"
         });
 
-        // Update the displayed address if the authorized account changes.
-        if (window.ethereum) {
-            window.ethereum.on("accountsChanged", function (accounts) {
-                if (accounts && accounts.length > 0) {
-                    showAddress(accounts[0]);
-                } else {
-                    walletAddress = "";
-                    resultBox.classList.add("hidden");
-                    connectBtn.textContent = "Connect Wallet";
-                    statusBox.textContent = "Wallet disconnected.";
-                }
-            });
+        if (!accounts || accounts.length === 0) {
+          statusBox.textContent =
+            "No authorized account is available. The wallet must grant access before this DApp can read its address.";
+          return;
         }
-    </script>
 
+        addressBox.textContent = accounts[0];
+        addressBox.hidden = false;
+        statusBox.textContent = "Address fetched successfully.";
+
+      } catch (error) {
+        statusBox.textContent =
+          "Could not read accounts: " + (error.message || "Unknown error");
+      } finally {
+        fetchBtn.disabled = false;
+      }
+    });
+  </script>
 </body>
 </html>
 ```
