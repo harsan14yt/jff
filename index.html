@@ -4,46 +4,297 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Wallet Diagnostic</title>
+  <title>Wallet Address Demo</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #0d111b;
+      color: #f5f7ff;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      max-width: 460px;
+      margin: 30px auto;
+    }
+
+    h2 {
+      margin-bottom: 8px;
+    }
+
+    .description {
+      color: #aeb8cc;
+      line-height: 1.5;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 12px;
+      border: none;
+      border-radius: 10px;
+      background: #493bff;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+    }
+
+    .card {
+      margin-top: 18px;
+      padding: 16px;
+      background: #171e2d;
+      border: 1px solid #293247;
+      border-radius: 12px;
+    }
+
+    .card h3 {
+      margin-top: 0;
+      font-size: 15px;
+      color: #b9c5db;
+    }
+
+    #address {
+      overflow-wrap: anywhere;
+      line-height: 1.5;
+    }
+
+    #balance {
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    input {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 13px;
+      border: 1px solid #39445b;
+      border-radius: 8px;
+      background: #0d111b;
+      color: white;
+      font-size: 16px;
+    }
+
+    .secondary {
+      background: #293247;
+    }
+
+    #status {
+      margin-top: 18px;
+      overflow-wrap: anywhere;
+      color: #c3d0e8;
+      line-height: 1.5;
+    }
+
+    .notice {
+      margin-top: 24px;
+      color: #8996ad;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+  </style>
 </head>
+
 <body>
-  <h3>Trust Wallet Diagnostic</h3>
-  <button id="checkBtn">Check Wallet</button>
-  <pre id="result">Tap the button to check.</pre>
+  <main class="container">
+    <h2>Wallet Address Demo</h2>
+
+    <p class="description">
+      Check your wallet address and public USDT balance.
+    </p>
+
+    <button id="checkBtn">Check Wallet</button>
+
+    <section class="card">
+      <h3>Wallet Address</h3>
+      <p id="address">Not checked yet</p>
+    </section>
+
+    <section class="card">
+      <h3>USDT Balance (BNB Smart Chain)</h3>
+      <p id="balance">Not checked yet</p>
+    </section>
+
+    <section class="card">
+      <label for="amount">Amount (USDT)</label>
+      <input
+        id="amount"
+        type="text"
+        inputmode="decimal"
+        placeholder="USDT amount"
+      >
+      <button id="maxBtn" class="secondary">MAX</button>
+    </section>
+
+    <p id="status" role="status">Ready</p>
+
+    <p class="notice">
+      Read-only demo. This page does not request token approval
+      or send transactions.
+    </p>
+  </main>
 
   <script>
-    document.getElementById("checkBtn").onclick = async () => {
-      const output = document.getElementById("result");
-      output.textContent = "Checking...";
+    "use strict";
+
+    const USDT_ADDRESS =
+      "0x55d398326f99059fF775485246999027B3197955";
+
+    const USDT_ABI = [
+      "function balanceOf(address owner) view returns (uint256)",
+      "function decimals() view returns (uint8)"
+    ];
+
+    const checkBtn = document.getElementById("checkBtn");
+    const maxBtn = document.getElementById("maxBtn");
+    const addressEl = document.getElementById("address");
+    const balanceEl = document.getElementById("balance");
+    const amountInput = document.getElementById("amount");
+    const statusEl = document.getElementById("status");
+
+    let currentBalance = null;
+
+    function setStatus(message) {
+      statusEl.textContent = message;
+    }
+
+    async function checkWallet() {
+      currentBalance = null;
+      checkBtn.disabled = true;
+
+      addressEl.textContent = "Checking...";
+      balanceEl.textContent = "Checking...";
+      setStatus("Checking wallet...");
 
       try {
-        output.textContent =
-          "window.ethereum: " + typeof window.ethereum + "\n" +
-          "ethereum providers: " +
-          (window.ethereum?.providers?.length ?? "not reported") + "\n";
-
         if (!window.ethereum) {
-          output.textContent +=
-            "\nNo EVM provider detected in this page.";
+          throw new Error(
+            "No EVM wallet provider detected. Open this page inside your wallet browser."
+          );
+        }
+
+        if (!window.ethers) {
+          throw new Error(
+            "Ethers library did not load. Check your internet connection."
+          );
+        }
+
+        const provider = new ethers.providers.Web3Provider(
+          window.ethereum,
+          "any"
+        );
+
+        // Read accounts already exposed to this DApp.
+        // Does not request new wallet permissions.
+        const accounts = await provider.send("eth_accounts", []);
+
+        if (!accounts || accounts.length === 0) {
+          addressEl.textContent = "No account exposed";
+          balanceEl.textContent = "Unavailable";
+
+          setStatus(
+            "Wallet provider found, but no account is exposed to this page."
+          );
           return;
         }
 
-        const accounts = await window.ethereum.request({
-          method: "eth_accounts"
-        });
+        const address = ethers.utils.getAddress(accounts[0]);
+        addressEl.textContent = address;
 
-        output.textContent +=
-          "\neth_accounts result: " + JSON.stringify(accounts) +
-          "\n\n" +
-          (accounts.length
-            ? "Address: " + accounts[0]
-            : "No account currently exposed to this DApp.");
+        const network = await provider.getNetwork();
+
+        if (network.chainId !== 56) {
+          balanceEl.textContent = "Wrong network";
+          setStatus(
+            "Switch to BNB Smart Chain in your wallet and try again."
+          );
+          return;
+        }
+
+        setStatus("Reading USDT balance...");
+
+        // Read-only blockchain calls.
+        const contract = new ethers.Contract(
+          USDT_ADDRESS,
+          USDT_ABI,
+          provider
+        );
+
+        let decimals = 18;
+
+        try {
+          decimals = await contract.decimals();
+        } catch (_) {}
+
+        const rawBalance = await contract.balanceOf(address);
+
+        currentBalance = ethers.utils.formatUnits(
+          rawBalance,
+          decimals
+        );
+
+        balanceEl.textContent =
+          Number(currentBalance).toLocaleString("en-US", {
+            maximumFractionDigits: 8
+          }) + " USDT";
+
+        setStatus("Wallet address and balance loaded.");
 
       } catch (error) {
-        output.textContent +=
-          "\nError: " + (error.message || String(error));
+        addressEl.textContent = "Unavailable";
+        balanceEl.textContent = "Unavailable";
+
+        setStatus(
+          "Error: " +
+          (error && error.message
+            ? error.message
+            : String(error))
+        );
+      } finally {
+        checkBtn.disabled = false;
       }
-    };
+    }
+
+    checkBtn.addEventListener("click", checkWallet);
+
+    maxBtn.addEventListener("click", async function () {
+      if (currentBalance === null) {
+        await checkWallet();
+      }
+
+      if (currentBalance !== null) {
+        amountInput.value = currentBalance;
+        setStatus("USDT balance filled into the amount field.");
+      }
+    });
+
+    if (window.ethereum && window.ethereum.on) {
+      window.ethereum.on("accountsChanged", function () {
+        currentBalance = null;
+        addressEl.textContent = "Not checked yet";
+        balanceEl.textContent = "Not checked yet";
+        setStatus("Account changed. Tap Check Wallet.");
+      });
+
+      window.ethereum.on("chainChanged", function () {
+        currentBalance = null;
+        balanceEl.textContent = "Not checked yet";
+        setStatus("Network changed. Tap Check Wallet again.");
+      });
+    }
   </script>
 </body>
 </html>
