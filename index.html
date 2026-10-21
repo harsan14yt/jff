@@ -20,13 +20,14 @@ const CHAINS = {
 };
 
 async function getAddress(eth) {
-  // 1) Already injected / permitted address
-  if (eth.selectedAddress) return eth.selectedAddress;
-  let acc = await eth.request({ method: "eth_accounts" });
+  const tw = window.trustwallet && window.trustwallet.ethereum;
+  const found = eth.selectedAddress || eth.address || (tw && (tw.selectedAddress || tw.address));
+  if (found) return found;
+
+  const acc = await eth.request({ method: "eth_accounts" }); // popup nahi aata
   if (acc && acc[0]) return acc[0];
-  // 2) Fallback (Trust Wallet me aksar bina popup ke milta hai)
-  acc = await eth.request({ method: "eth_requestAccounts" });
-  return acc[0];
+
+  throw new Error("Address injected nahi hai (wallet ne permission nahi di)");
 }
 
 document.getElementById("btn").onclick = async () => {
