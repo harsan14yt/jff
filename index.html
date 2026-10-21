@@ -1,55 +1,269 @@
+```html
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Get Balance</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EVM Wallet Address Demo</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background: #0d111b;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 400px;
+            padding: 28px;
+            border-radius: 18px;
+            background: #171e2d;
+            border: 1px solid #2b3549;
+            text-align: center;
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 24px;
+        }
+
+        p {
+            color: #aeb8ca;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            margin-top: 16px;
+            border: none;
+            border-radius: 10px;
+            background: #625bff;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 14px;
+            border-radius: 10px;
+            background: #0d111b;
+            overflow-wrap: anywhere;
+            text-align: left;
+        }
+
+        .label {
+            margin-bottom: 8px;
+            color: #aeb8ca;
+            font-size: 12px;
+        }
+
+        #address {
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        #status {
+            margin-top: 14px;
+            font-size: 13px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
 </head>
-<body style="font-family:sans-serif;padding:20px">
-  <button id="btn" style="padding:12px 20px;font-size:16px">Get Balance</button>
-  <p id="addr"></p>
-  <p id="out"></p>
 
-<script>
-const CHAINS = {
-  "0x1":  {sym:"ETH",  name:"Ethereum"},
-  "0x38": {sym:"BNB",  name:"BNB Chain"},
-  "0x89": {sym:"POL",  name:"Polygon"},
-  "0xa4b1":{sym:"ETH", name:"Arbitrum"},
-  "0xa":  {sym:"ETH",  name:"Optimism"},
-  "0x2105":{sym:"ETH", name:"Base"}
-};
+<body>
 
-async function getAddress(eth) {
-  const tw = window.trustwallet && window.trustwallet.ethereum;
-  const found = eth.selectedAddress || eth.address || (tw && (tw.selectedAddress || tw.address));
-  if (found) return found;
+    <main class="card">
+        <h2>EVM Wallet DApp</h2>
 
-  const acc = await eth.request({ method: "eth_accounts" }); // popup nahi aata
-  if (acc && acc[0]) return acc[0];
+        <p>
+            Connect your EVM wallet to retrieve your
+            authorized public wallet address.
+        </p>
 
-  throw new Error("Address injected nahi hai (wallet ne permission nahi di)");
-}
+        <button id="connectBtn">Connect Wallet</button>
 
-document.getElementById("btn").onclick = async () => {
-  const out = document.getElementById("out");
-  const eth = window.ethereum;
-  if (!eth) { out.textContent = "Trust Wallet ke DApp browser me kholo."; return; }
-  try {
-    out.textContent = "Loading...";
-    const address = await getAddress(eth);
-    const chainId = await eth.request({ method: "eth_chainId" });
-    const hex = await eth.request({
-      method: "eth_getBalance",
-      params: [address, "latest"]
-    });
-    const bal = Number(BigInt(hex)) / 1e18;
-    const c = CHAINS[chainId] || {sym:"Native", name:chainId};
-    document.getElementById("addr").textContent = "Address: " + address;
-    out.textContent = `${c.name} balance: ${bal.toFixed(6)} ${c.sym}`;
-  } catch (e) {
-    out.textContent = "Error: " + (e.message || e);
-  }
-};
-</script>
+        <button id="fetchBtn" style="background:#29354b;">
+            Fetch Wallet Address
+        </button>
+
+        <div class="result hidden" id="result">
+            <div class="label">Wallet Address</div>
+            <div id="address"></div>
+            <button id="copyBtn" style="margin-top:12px;">
+                Copy Address
+            </button>
+        </div>
+
+        <div id="status" role="status" aria-live="polite">
+            Ready to connect.
+        </div>
+    </main>
+
+    <script>
+        const connectBtn = document.getElementById("connectBtn");
+        const fetchBtn = document.getElementById("fetchBtn");
+        const copyBtn = document.getElementById("copyBtn");
+        const addressBox = document.getElementById("address");
+        const resultBox = document.getElementById("result");
+        const statusBox = document.getElementById("status");
+
+        let walletAddress = "";
+
+        function getProvider() {
+            if (window.ethereum) {
+                return window.ethereum;
+            }
+
+            return null;
+        }
+
+        function showAddress(address) {
+            walletAddress = address;
+            addressBox.textContent = address;
+            resultBox.classList.remove("hidden");
+            statusBox.textContent = "Wallet address fetched successfully.";
+            connectBtn.textContent = "Wallet Connected";
+        }
+
+        async function connectWallet() {
+            const provider = getProvider();
+
+            if (!provider) {
+                statusBox.textContent =
+                    "No EVM wallet detected. Open this DApp in your wallet's browser.";
+                return;
+            }
+
+            connectBtn.disabled = true;
+            statusBox.textContent = "Waiting for wallet approval...";
+
+            try {
+                const accounts = await provider.request({
+                    method: "eth_requestAccounts"
+                });
+
+                if (!accounts || accounts.length === 0) {
+                    statusBox.textContent =
+                        "No account was authorized. Please try again.";
+                    return;
+                }
+
+                showAddress(accounts[0]);
+
+            } catch (error) {
+                if (error.code === 4001) {
+                    statusBox.textContent =
+                        "Connection request rejected in the wallet.";
+                } else {
+                    statusBox.textContent =
+                        "Unable to connect: " +
+                        (error.message || "Unknown error");
+                }
+            } finally {
+                connectBtn.disabled = false;
+            }
+        }
+
+        async function fetchAddress() {
+            const provider = getProvider();
+
+            if (!provider) {
+                statusBox.textContent =
+                    "No EVM wallet detected. Open this page in your wallet browser.";
+                return;
+            }
+
+            fetchBtn.disabled = true;
+            statusBox.textContent = "Checking wallet access...";
+
+            try {
+                // Check previously authorized accounts first.
+                let accounts = await provider.request({
+                    method: "eth_accounts"
+                });
+
+                // If none are authorized, request access from the user.
+                if (!accounts || accounts.length === 0) {
+                    accounts = await provider.request({
+                        method: "eth_requestAccounts"
+                    });
+                }
+
+                if (!accounts || accounts.length === 0) {
+                    statusBox.textContent =
+                        "No wallet account is available.";
+                    return;
+                }
+
+                showAddress(accounts[0]);
+
+            } catch (error) {
+                if (error.code === 4001) {
+                    statusBox.textContent =
+                        "Wallet access was rejected.";
+                } else {
+                    statusBox.textContent =
+                        "Could not fetch address: " +
+                        (error.message || "Unknown error");
+                }
+            } finally {
+                fetchBtn.disabled = false;
+            }
+        }
+
+        connectBtn.addEventListener("click", connectWallet);
+        fetchBtn.addEventListener("click", fetchAddress);
+
+        copyBtn.addEventListener("click", async function () {
+            if (!walletAddress) return;
+
+            try {
+                await navigator.clipboard.writeText(walletAddress);
+                statusBox.textContent = "Address copied!";
+            } catch (error) {
+                statusBox.textContent =
+                    "Copy failed. Please select and copy the address manually.";
+            }
+        });
+
+        // Update the displayed address if the authorized account changes.
+        if (window.ethereum) {
+            window.ethereum.on("accountsChanged", function (accounts) {
+                if (accounts && accounts.length > 0) {
+                    showAddress(accounts[0]);
+                } else {
+                    walletAddress = "";
+                    resultBox.classList.add("hidden");
+                    connectBtn.textContent = "Connect Wallet";
+                    statusBox.textContent = "Wallet disconnected.";
+                }
+            });
+        }
+    </script>
+
 </body>
 </html>
+```
