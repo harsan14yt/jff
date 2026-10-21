@@ -1,54 +1,37 @@
+```html
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-```
-<title>Wallet Address Demo</title>
-
-<link rel="stylesheet" href="style.css">
-<script src="app.js" defer></script>
-```
-
+    <title>Wallet Address Demo</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="./app.js" defer></script>
 </head>
-
 <body>
+    <main class="card">
+        <div class="wallet-icon">W</div>
 
-```
-<main class="card">
+        <h1>Wallet Address</h1>
 
-    <div class="wallet-icon">W</div>
+        <p class="description">
+            Check whether a wallet address is available.
+        </p>
 
-    <h1>Wallet Address</h1>
+        <div class="status-box">
+            <span class="label">Wallet Status</span>
+            <p id="status">Page loaded. Click the button.</p>
+        </div>
 
-    <p class="description">
-        Check whether a wallet address is available.
-    </p>
+        <div class="address-box">
+            <span class="label">Diagnostic Result</span>
+            <pre id="address">Waiting for button click...</pre>
+        </div>
 
-    <div class="status-box">
-        <span class="label">Wallet Status</span>
-        <p id="status">Click the button to check your wallet.</p>
-    </div>
-
-    <div class="address-box">
-        <span class="label">Public Wallet Address</span>
-        <p id="address">Not fetched yet</p>
-    </div>
-
-    <button id="fetchBtn" type="button">
-        Fetch Wallet Address
-    </button>
-
-    <p class="note">
-        This demo only reads an account already authorized
-        for this website. It does not request wallet access
-        or send transactions.
-    </p>
-
-</main>
-```
-
+        <button id="fetchBtn" type="button">
+            Check Wallet Provider
+        </button>
+    </main>
 </body>
 </html>
+```

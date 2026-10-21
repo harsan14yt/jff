@@ -1,28 +1,29 @@
 ```javascript
-const fetchBtn = document.getElementById("fetchBtn");
-const statusElement = document.getElementById("status");
-const addressElement = document.getElementById("address");
+document.addEventListener("DOMContentLoaded", function () {
+    const fetchBtn = document.getElementById("fetchBtn");
+    const statusElement = document.getElementById("status");
+    const addressElement = document.getElementById("address");
 
-fetchBtn.addEventListener("click", function () {
-    const result = {
-        ethereum: typeof window.ethereum !== "undefined",
-        tronWeb: typeof window.tronWeb !== "undefined",
-        tronLink: typeof window.tronLink !== "undefined",
-        ethereumIsTrust: !!window.ethereum?.isTrust,
-        providers: []
-    };
-
-    if (Array.isArray(window.ethereum?.providers)) {
-        result.providers = window.ethereum.providers.map((provider) => ({
-            isTrust: !!provider.isTrust,
-            isTronLink: !!provider.isTronLink
-        }));
+    if (!fetchBtn || !statusElement || !addressElement) {
+        return;
     }
 
-    console.log("Wallet provider diagnostic:", result);
+    statusElement.textContent = "JavaScript loaded successfully.";
 
-    statusElement.textContent = "Diagnostic completed:";
+    fetchBtn.addEventListener("click", function () {
+        try {
+            const result = {
+                ethereum: typeof window.ethereum !== "undefined",
+                tronWeb: typeof window.tronWeb !== "undefined",
+                tronLink: typeof window.tronLink !== "undefined"
+            };
 
-    addressElement.textContent = JSON.stringify(result, null, 2);
+            addressElement.textContent = JSON.stringify(result, null, 2);
+            statusElement.textContent = "Provider check completed.";
+        } catch (error) {
+            statusElement.textContent = "Diagnostic failed.";
+            addressElement.textContent = String(error);
+        }
+    });
 });
 ```
