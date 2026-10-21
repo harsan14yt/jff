@@ -2,61 +2,60 @@ const fetchBtn = document.getElementById("fetchBtn");
 const statusElement = document.getElementById("status");
 const addressElement = document.getElementById("address");
 
+console.log("app.js loaded");
+console.log("Fetch button:", fetchBtn);
+
 fetchBtn.addEventListener("click", async function () {
+    console.log("Button clicked!");
 
-```
-// Prevent repeated clicks while checking.
-fetchBtn.disabled = true;
+    fetchBtn.disabled = true;
+    statusElement.textContent = "Checking wallet...";
+    addressElement.textContent = "Checking...";
 
-statusElement.textContent = "Checking wallet...";
-addressElement.textContent = "Checking...";
+    try {
+        console.log("Checking wallet provider...");
 
-try {
+        if (!window.ethereum) {
+            console.log("window.ethereum not found");
 
-    // Look for an EVM-compatible wallet provider.
-    if (!window.ethereum) {
+            statusElement.textContent =
+                "Wallet provider not detected. Open this page in a compatible wallet browser.";
+
+            addressElement.textContent = "Not available";
+            return;
+        }
+
+        console.log("Wallet provider found!");
+        console.log("Requesting existing authorized accounts...");
+
+        const accounts = await window.ethereum.request({
+            method: "eth_accounts"
+        });
+
+        console.log("Accounts returned:", accounts);
+
+        if (!Array.isArray(accounts) || accounts.length === 0) {
+            statusElement.textContent =
+                "No authorized account available.";
+
+            addressElement.textContent = "Not available";
+            return;
+        }
+
+        addressElement.textContent = accounts[0];
+
         statusElement.textContent =
-            "No compatible wallet provider detected.";
+            "Wallet address fetched successfully.";
+
+    } catch (error) {
+        console.error("Wallet error:", error);
+
+        statusElement.textContent =
+            "Unable to fetch wallet address. Check the console.";
 
         addressElement.textContent = "Not available";
-        return;
+
+    } finally {
+        fetchBtn.disabled = false;
     }
-
-    // Read accounts already authorized for this website.
-    // This does not request new account permissions.
-    const accounts = await window.ethereum.request({
-        method: "eth_accounts"
-    });
-
-    if (!Array.isArray(accounts) || accounts.length === 0) {
-        statusElement.textContent =
-            "No authorized wallet account is available.";
-
-        addressElement.textContent = "Not available";
-        return;
-    }
-
-    // Display the available public address.
-    const walletAddress = accounts[0];
-
-    addressElement.textContent = walletAddress;
-    statusElement.textContent =
-        "Wallet address fetched successfully.";
-
-} catch (error) {
-
-    console.error("Wallet address lookup failed:", error);
-
-    statusElement.textContent =
-        "Unable to fetch wallet address.";
-
-    addressElement.textContent = "Not available";
-
-} finally {
-
-    // Allow the user to try again.
-    fetchBtn.disabled = false;
-}
-```
-
 });
