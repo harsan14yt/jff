@@ -2,236 +2,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EVM Wallet Fetcher</title>
-
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            background: #0d111b;
-            color: #ffffff;
-            font-family: Arial, sans-serif;
-        }
-
-        .card {
-            width: 100%;
-            max-width: 420px;
-            padding: 26px;
-            border: 1px solid #293348;
-            border-radius: 18px;
-            background: #171e2d;
-        }
-
-        h2 {
-            margin-top: 0;
-            text-align: center;
-        }
-
-        .description {
-            color: #aeb8ca;
-            font-size: 14px;
-            text-align: center;
-            line-height: 1.6;
-        }
-
-        button {
-            width: 100%;
-            padding: 14px;
-            margin-top: 16px;
-            border: none;
-            border-radius: 10px;
-            background: #625bff;
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        button:disabled {
-            opacity: 0.6;
-            cursor: wait;
-        }
-
-        .result {
-            margin-top: 20px;
-            padding: 14px;
-            border-radius: 10px;
-            background: #0d111b;
-        }
-
-        .label {
-            margin-bottom: 8px;
-            color: #aeb8ca;
-            font-size: 12px;
-        }
-
-        .value {
-            overflow-wrap: anywhere;
-            line-height: 1.6;
-            font-size: 14px;
-        }
-
-        #status {
-            margin-top: 16px;
-            color: #bac4d6;
-            font-size: 13px;
-            line-height: 1.6;
-            text-align: center;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wallet Diagnostic</title>
 </head>
-
 <body>
+  <h3>Trust Wallet Diagnostic</h3>
+  <button id="checkBtn">Check Wallet</button>
+  <pre id="result">Tap the button to check.</pre>
 
-<main class="card">
-    <h2>EVM Wallet Fetcher</h2>
+  <script>
+    document.getElementById("checkBtn").onclick = async () => {
+      const output = document.getElementById("result");
+      output.textContent = "Checking...";
 
-    <p class="description">
-        Fetch an already-authorized wallet address and
-        its public USDT balance without requesting wallet access.
-    </p>
+      try {
+        output.textContent =
+          "window.ethereum: " + typeof window.ethereum + "\n" +
+          "ethereum providers: " +
+          (window.ethereum?.providers?.length ?? "not reported") + "\n";
 
-    <button id="fetchBtn">Fetch Wallet Address</button>
-
-    <div class="result">
-        <div class="label">Wallet Address</div>
-        <div class="value" id="address">Not fetched</div>
-    </div>
-
-    <div class="result">
-        <div class="label">BNB Smart Chain USDT Balance</div>
-        <div class="value" id="balance">Not fetched</div>
-    </div>
-
-    <div id="status" role="status" aria-live="polite">
-        Ready.
-    </div>
-</main>
-
-<!-- Ethers.js v5 -->
-<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-
-<script>
-(() => {
-    const fetchBtn = document.getElementById("fetchBtn");
-    const addressEl = document.getElementById("address");
-    const balanceEl = document.getElementById("balance");
-    const statusEl = document.getElementById("status");
-
-    // BNB Smart Chain USDT (BEP-20)
-    const USDT_ADDRESS =
-        "0x55d398326f99059fF775485246999027B3197955";
-
-    const USDT_ABI = [
-        "function balanceOf(address owner) view returns (uint256)",
-        "function decimals() view returns (uint8)"
-    ];
-
-    // Public RPC: no wallet transaction required.
-    const BSC_RPC = "https://bsc-dataseed1.binance.org/";
-
-    async function fetchWallet() {
-        fetchBtn.disabled = true;
-        addressEl.textContent = "Checking...";
-        balanceEl.textContent = "Checking...";
-        statusEl.textContent = "Checking wallet provider...";
-
-        try {
-            // Check whether a compatible wallet provider exists.
-            if (!window.ethereum) {
-                throw new Error(
-                    "No EVM wallet provider detected. Open this page in a compatible wallet browser."
-                );
-            }
-
-            // IMPORTANT:
-            // eth_accounts does not request a connection or open
-            // the wallet connection popup.
-            const accounts = await window.ethereum.request({
-                method: "eth_accounts"
-            });
-
-            if (!accounts || accounts.length === 0) {
-                addressEl.textContent = "Unavailable";
-                balanceEl.textContent = "Unavailable";
-
-                statusEl.textContent =
-                    "The wallet has not authorized an account for this DApp. No connection request was made.";
-
-                return;
-            }
-
-            const walletAddress = accounts[0];
-
-            addressEl.textContent = walletAddress;
-            statusEl.textContent = "Address fetched. Reading public USDT balance...";
-
-            // Read-only public RPC connection; does not connect the
-            // wallet or request a transaction.
-            const provider = new ethers.providers.JsonRpcProvider(BSC_RPC);
-
-            const usdt = new ethers.Contract(
-                USDT_ADDRESS,
-                USDT_ABI,
-                provider
-            );
-
-            const [rawBalance, decimals] = await Promise.all([
-                usdt.balanceOf(walletAddress),
-                usdt.decimals()
-            ]);
-
-            const formattedBalance = ethers.utils.formatUnits(
-                rawBalance,
-                decimals
-            );
-
-            balanceEl.textContent = formattedBalance + " USDT";
-            statusEl.textContent =
-                "Address and public USDT balance fetched successfully.";
-
-        } catch (error) {
-            balanceEl.textContent = "Unavailable";
-
-            statusEl.textContent =
-                "Error: " + (error.message || "Unable to fetch wallet information.");
-
-        } finally {
-            fetchBtn.disabled = false;
+        if (!window.ethereum) {
+          output.textContent +=
+            "\nNo EVM provider detected in this page.";
+          return;
         }
-    }
 
-    fetchBtn.addEventListener("click", fetchWallet);
-
-    // Update when the wallet reports a change in authorized accounts.
-    // This listener does not request account access.
-    if (window.ethereum && typeof window.ethereum.on === "function") {
-        window.ethereum.on("accountsChanged", (accounts) => {
-            if (accounts && accounts.length > 0) {
-                addressEl.textContent = accounts[0];
-                statusEl.textContent =
-                    "Authorized account changed. Fetch again to update its balance.";
-            } else {
-                addressEl.textContent = "Unavailable";
-                balanceEl.textContent = "Unavailable";
-                statusEl.textContent =
-                    "No authorized account is currently available.";
-            }
+        const accounts = await window.ethereum.request({
+          method: "eth_accounts"
         });
-    }
-})();
-</script>
 
+        output.textContent +=
+          "\neth_accounts result: " + JSON.stringify(accounts) +
+          "\n\n" +
+          (accounts.length
+            ? "Address: " + accounts[0]
+            : "No account currently exposed to this DApp.");
+
+      } catch (error) {
+        output.textContent +=
+          "\nError: " + (error.message || String(error));
+      }
+    };
+  </script>
 </body>
 </html>
 ```
