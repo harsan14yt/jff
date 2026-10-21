@@ -1,3 +1,4 @@
+```javascript
 const fetchBtn = document.getElementById("fetchBtn");
 const statusElement = document.getElementById("status");
 const addressElement = document.getElementById("address");
@@ -7,6 +8,7 @@ fetchBtn.addEventListener("click", function () {
         ethereum: typeof window.ethereum !== "undefined",
         tronWeb: typeof window.tronWeb !== "undefined",
         tronLink: typeof window.tronLink !== "undefined",
+        ethereumIsTrust: !!window.ethereum?.isTrust,
         providers: []
     };
 
@@ -19,9 +21,8 @@ fetchBtn.addEventListener("click", function () {
 
     console.log("Wallet provider diagnostic:", result);
 
-    statusElement.textContent =
-        "Wallet provider check completed. See console.";
+    statusElement.textContent = "Diagnostic completed:";
 
-    addressElement.textContent =
-        "Check browser console for diagnostic results.";
+    addressElement.textContent = JSON.stringify(result, null, 2);
 });
+```
