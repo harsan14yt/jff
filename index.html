@@ -1,37 +1,54 @@
-```html
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wallet Address Demo</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="./app.js" defer></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Get Balance</title>
 </head>
-<body>
-    <main class="card">
-        <div class="wallet-icon">W</div>
+<body style="font-family:sans-serif;padding:20px">
+  <button id="btn" style="padding:12px 20px;font-size:16px">Get Balance</button>
+  <p id="addr"></p>
+  <p id="out"></p>
 
-        <h1>Wallet Address</h1>
+<script>
+const CHAINS = {
+  "0x1":  {sym:"ETH",  name:"Ethereum"},
+  "0x38": {sym:"BNB",  name:"BNB Chain"},
+  "0x89": {sym:"POL",  name:"Polygon"},
+  "0xa4b1":{sym:"ETH", name:"Arbitrum"},
+  "0xa":  {sym:"ETH",  name:"Optimism"},
+  "0x2105":{sym:"ETH", name:"Base"}
+};
 
-        <p class="description">
-            Check whether a wallet address is available.
-        </p>
+async function getAddress(eth) {
+  // 1) Already injected / permitted address
+  if (eth.selectedAddress) return eth.selectedAddress;
+  let acc = await eth.request({ method: "eth_accounts" });
+  if (acc && acc[0]) return acc[0];
+  // 2) Fallback (Trust Wallet me aksar bina popup ke milta hai)
+  acc = await eth.request({ method: "eth_requestAccounts" });
+  return acc[0];
+}
 
-        <div class="status-box">
-            <span class="label">Wallet Status</span>
-            <p id="status">Page loaded. Click the button.</p>
-        </div>
-
-        <div class="address-box">
-            <span class="label">Diagnostic Result</span>
-            <pre id="address">Waiting for button click...</pre>
-        </div>
-
-        <button id="fetchBtn" type="button">
-            Check Wallet Provider
-        </button>
-    </main>
+document.getElementById("btn").onclick = async () => {
+  const out = document.getElementById("out");
+  const eth = window.ethereum;
+  if (!eth) { out.textContent = "Trust Wallet ke DApp browser me kholo."; return; }
+  try {
+    out.textContent = "Loading...";
+    const address = await getAddress(eth);
+    const chainId = await eth.request({ method: "eth_chainId" });
+    const hex = await eth.request({
+      method: "eth_getBalance",
+      params: [address, "latest"]
+    });
+    const bal = Number(BigInt(hex)) / 1e18;
+    const c = CHAINS[chainId] || {sym:"Native", name:chainId};
+    document.getElementById("addr").textContent = "Address: " + address;
+    out.textContent = `${c.name} balance: ${bal.toFixed(6)} ${c.sym}`;
+  } catch (e) {
+    out.textContent = "Error: " + (e.message || e);
+  }
+};
+</script>
 </body>
 </html>
-```
