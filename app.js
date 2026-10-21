@@ -2,58 +2,64 @@ const fetchBtn = document.getElementById("fetchBtn");
 const statusElement = document.getElementById("status");
 const addressElement = document.getElementById("address");
 
-console.log("app.js loaded");
-console.log("Fetch button:", fetchBtn);
-
 fetchBtn.addEventListener("click", async function () {
-    console.log("Button clicked!");
-
     fetchBtn.disabled = true;
-    statusElement.textContent = "Checking wallet...";
-    addressElement.textContent = "Checking...";
+
+    statusElement.textContent = "Checking TRON wallet...";
+    addressElement.textContent = "Not available";
 
     try {
-        console.log("Checking wallet provider...");
+        let tronWeb = null;
 
-        if (!window.ethereum) {
-            console.log("window.ethereum not found");
+        // Look for an already available TRON provider.
+        if (window.tronWeb && window.tronWeb.defaultAddress) {
+            tronWeb = window.tronWeb;
+        } else if (
+            window.tronLink &&
+            window.tronLink.tronWeb
+        ) {
+            tronWeb = window.tronLink.tronWeb;
+        }
 
+        if (!tronWeb) {
             statusElement.textContent =
-                "Wallet provider not detected. Open this page in a compatible wallet browser.";
+                "No compatible TRON wallet provider detected.";
 
-            addressElement.textContent = "Not available";
             return;
         }
 
-        console.log("Wallet provider found!");
-        console.log("Requesting existing authorized accounts...");
+        // Read an address only if the provider already exposes one.
+        const address =
+            tronWeb.defaultAddress &&
+            tronWeb.defaultAddress.base58;
 
-        const accounts = await window.ethereum.request({
-            method: "eth_accounts"
-        });
-
-        console.log("Accounts returned:", accounts);
-
-        if (!Array.isArray(accounts) || accounts.length === 0) {
+        if (!address) {
             statusElement.textContent =
-                "No authorized account available.";
+                "No TRON address is currently available.";
 
-            addressElement.textContent = "Not available";
             return;
         }
 
-        addressElement.textContent = accounts[0];
+        // Confirm that the exposed value is a valid TRON address.
+        if (
+            !tronWeb.isAddress ||
+            !tronWeb.isAddress(address)
+        ) {
+            statusElement.textContent =
+                "The available address could not be verified.";
 
+            return;
+        }
+
+        addressElement.textContent = address;
         statusElement.textContent =
-            "Wallet address fetched successfully.";
+            "TRON address fetched successfully.";
 
     } catch (error) {
-        console.error("Wallet error:", error);
+        console.error("TRON address lookup error:", error);
 
         statusElement.textContent =
-            "Unable to fetch wallet address. Check the console.";
-
-        addressElement.textContent = "Not available";
+            "Unable to read the TRON address.";
 
     } finally {
         fetchBtn.disabled = false;
